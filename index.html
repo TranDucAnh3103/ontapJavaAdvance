@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Java & System Architecture Study Cards (Full Database)</title>
+    <style>
+        /* CSS Variables cho Theme */
+        :root {
+            --primary-color: #0056b3;
+            --bg-color: #f4f7f6;
+            --card-bg: #ffffff;
+            --text-color: #333333;
+            --border-radius: 8px;
+            --transition-speed: 0.3s;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .header-controls {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        select, button {
+            padding: 10px 15px;
+            font-size: 16px;
+            border: 1px solid #ccc;
+            border-radius: var(--border-radius);
+            cursor: pointer;
+        }
+
+        select {
+            flex-grow: 1;
+            max-width: 400px;
+            outline: none;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+            border: none;
+            transition: background-color var(--transition-speed);
+        }
+
+        .btn-primary:hover {
+            background-color: #004494;
+        }
+
+        /* Danh sách câu hỏi (Accordion) */
+        .question-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        details {
+            background: var(--card-bg);
+            border: 1px solid #ddd;
+            border-radius: var(--border-radius);
+            padding: 10px 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        summary {
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            list-style: none;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        summary::-webkit-details-marker {
+            display: none;
+        }
+
+        summary::after {
+            content: '▼';
+            font-size: 12px;
+            transition: transform var(--transition-speed);
+        }
+
+        details[open] summary::after {
+            transform: rotate(180deg);
+        }
+
+        .answer-content {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px dashed #eee;
+            color: #444;
+            white-space: pre-wrap;
+        }
+
+        /* Flashcard Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px; right: 30px;
+            font-size: 40px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .flashcard-container {
+            width: 90%;
+            max-width: 700px;
+            height: 450px;
+            perspective: 1000px;
+        }
+
+        .flashcard {
+            width: 100%;
+            height: 100%;
+            position: relative;
+            transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+            transform-style: preserve-3d;
+            cursor: pointer;
+        }
+
+        .flashcard.flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px;
+            box-sizing: border-box;
+            background: var(--card-bg);
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            text-align: center;
+            overflow-y: auto;
+        }
+
+        .card-front {
+            background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%);
+        }
+
+        .card-back {
+            transform: rotateY(180deg);
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            align-items: flex-start;
+            text-align: left;
+        }
+
+        .card-category {
+            font-size: 13px;
+            text-transform: uppercase;
+            color: var(--primary-color);
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-weight: bold;
+        }
+
+        .flashcard-controls {
+            margin-top: 25px;
+            display: flex;
+            gap: 20px;
+            align-items: center;
+        }
+
+        .counter {
+            color: white;
+            font-size: 18px;
+            font-weight: bold;
+            min-width: 80px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Ôn tập Kiến trúc & Java Fullstack (Full Database)</h1>
+        
+        <div class="header-controls">
+            <select id="categoryFilter">
+                <option value="ALL">Tất cả các phần (84 câu)</option>
+            </select>
+            <button class="btn-primary" id="btnOpenFlashcard">Học Flashcard</button>
+        </div>
+
+        <div class="question-list" id="questionList">
+            </div>
+    </div>
+
+    <div class="modal" id="flashcardModal">
+        <span class="close-btn" id="btnCloseModal">&times;</span>
+        <div class="flashcard-container" onclick="flipCard()">
+            <div class="flashcard" id="flashcardElement">
+                <div class="card-face card-front">
+                    <div class="card-category" id="cardCategoryFront"></div>
+                    <h2 id="cardQuestion" style="font-size: 22px;"></h2>
+                    <p style="font-size: 14px; color: #888; position: absolute; bottom: 20px;">Click để xem đáp án</p>
+                </div>
+                <div class="card-face card-back">
+                    <div class="card-category" id="cardCategoryBack"></div>
+                    <div id="cardAnswer" class="answer-content" style="border:none; margin-top:10px; padding-top:10px; font-size: 16px;"></div>
+                </div>
+            </div>
+        </div>
+        <div class="flashcard-controls">
+            <button class="btn-primary" onclick="prevCard()">⬅ Trước</button>
+            <span class="counter" id="cardCounter">1 / 10</span>
+            <button class="btn-primary" onclick="nextCard()">Tiếp ➡</button>
+        </div>
+    </div>
+
+    <script>
+        const data = [
+            // ================= CƠ BẢN =================
+            // Phần 1: Ngoại lệ (Exception)
+            { category: "Cơ Bản - Ngoại lệ", question: "Câu 1: Exception trong Java là gì và tại sao chúng ta cần xử lý nó trong dự án thực tế?", answer: "Exception là sự kiện bất thường xảy ra tại thời điểm Runtime, phá vỡ luồng thực thi bình thường của chương trình. Trong thực tế, ta cần xử lý để ứng dụng không bị dừng (crash) đột ngột, bảo vệ dữ liệu và hiển thị thông báo lỗi thân thiện cho người dùng." },
+            { category: "Cơ Bản - Ngoại lệ", question: "Câu 2: Checked Exception và Unchecked Exception khác nhau như thế nào? Tại sao Java lại chia ra như vậy?", answer: "Checked là các lỗi khách quan (mất mạng, file không tồn tại), Java bắt buộc phải xử lý (try-catch/throws) ngay khi viết code. Unchecked là lỗi do lập trình viên (chia cho 0, null pointer), Java không bắt buộc bắt lỗi vì đây là lỗi logic cần phải sửa code chứ không phải chỉ 'hứng' lỗi. Lỗi Checked bắt buộc compiler phải kiểm tra và yêu cầu lập trình viên xử lý, trong khi Unchecked Exception kế thừa từ RuntimeException." },
+            { category: "Cơ Bản - Ngoại lệ", question: "Câu 3: Tại sao việc dùng catch (Exception e) chung chung cho mọi trường hợp lại bị coi là một thiết kế tồi?", answer: "Việc catch Exception (lớp cha cao nhất) sẽ 'nuốt' luôn cả những lỗi hệ thống hoặc lỗi logic nghiêm trọng mà lẽ ra chương trình nên dừng lại để developer sửa (như NullPointerException). Lập trình viên nên catch các lỗi cụ thể (IOException, SQLException) để có phương án xử lý (recovery) phù hợp, vì catch chung chung khiến việc debug trở thành 'cực hình'." },
+            { category: "Cơ Bản - Ngoại lệ", question: "Câu 4: Phân biệt sự khác nhau cơ bản giữa từ khóa throw và throws trong xử lý ngoại lệ?", answer: "Từ khóa throw (hành động) nằm trong thân hàm, dùng để chủ động kích hoạt và ném ra một đối tượng ngoại lệ cụ thể (VD: throw new IllegalArgumentException()). Từ khóa throws (khai báo) nằm sau tên hàm (ở chữ ký hàm), dùng để cảnh báo cho người gọi hàm biết rằng hàm này có thể xảy ra lỗi." },
+            { category: "Cơ Bản - Ngoại lệ", question: "Câu 5: Khối finally có vai trò gì và lợi ích thực sự của try-with-resources so với việc dùng finally là gì?", answer: "Khối finally là khối lệnh luôn luôn được chạy dù có xảy ra lỗi hay không, thường được dùng để 'dọn dẹp hiện trường', giải phóng các tài nguyên hệ thống (như đóng Scanner, File, Connection DB) để tránh rò rỉ bộ nhớ. Tuy nhiên, try-with-resources ưu việt hơn vì nó giúp code ngắn gọn, tự động đóng các resource theo đúng thứ tự. Đặc biệt, nó xử lý được 'Suppressed Exceptions' để tránh việc lỗi khi đang đóng resource đè mất lỗi chính của chương trình." },
+            { category: "Cơ Bản - Ngoại lệ", question: "Câu 6: Tại sao nên tự định nghĩa Custom Exception thay vì dùng Exception mặc định của Java?", answer: "Custom Exception (ngoại lệ tùy chỉnh) giúp tăng tính rõ ràng, phân loại lỗi và mô tả các lỗi nghiệp vụ cụ thể của dự án (ví dụ: InvalidAgeException, AccountBalanceNotEnoughException). Việc này giúp việc debug và bảo trì dễ dàng hơn." },
+
+            // Phần 2: Unit Test
+            { category: "Cơ Bản - Unit Test", question: "Câu 7: Lợi ích thiết thực nhất của việc viết Unit Test là gì? Tại sao Dev phải tự viết trong khi đằng nào QA/Tester cũng sẽ test lại toàn bộ hệ thống?", answer: "Unit Test giúp khẳng định chất lượng sản phẩm, tăng tốc độ kiểm thử tự động, dễ dàng quản lý rủi ro và giảm chi phí bảo trì. Trong khi Tester kiểm tra hệ thống từ bên ngoài (Black-box/End-to-End), Unit Test kiểm tra các logic hàm từ bên trong (White-box) ngay tại thời điểm code. Việc này giúp phát hiện bug sớm, dễ dàng refactor code sau này mà không sợ làm hỏng logic cũ." },
+            { category: "Cơ Bản - Unit Test", question: "Câu 8: Hãy kể tên 4 bước chuẩn để triển khai một Unit Test (Mô hình 4 bước)?", answer: "4 bước gồm: Arrange (Chuẩn bị dữ liệu/mock) -> Act (Gọi hàm cần test) -> Assert (Kiểm tra kết quả thực tế với mong đợi) -> Verify (Kiểm tra tương tác với mock)." },
+            { category: "Cơ Bản - Unit Test", question: "Câu 9: Trong JUnit, hàm assertEquals() được sử dụng với mục đích gì?", answer: "assertEquals() là một assertion thông dụng dùng để so sánh sự bằng nhau giữa 2 giá trị: giá trị mong đợi (expected) và giá trị thực tế sinh ra từ code (actual)." },
+
+            // Phần 3: Java 8 & Java 17
+            { category: "Cơ Bản - Java 8 & 17", question: "Câu 10: Điểm thay đổi tư duy lớn nhất khi Java 8 ra mắt là gì?", answer: "Java 8 đánh dấu sự chuyển đổi tư duy từ lập trình hướng đối tượng (OOP) thuần túy sang việc kết hợp với Lập trình hướng hàm (Functional Programming) theo tiêu chí 'Write less, do more'." },
+            { category: "Cơ Bản - Java 8 & 17", question: "Câu 11: Functional Interface là gì? Tại sao nó bắt buộc chỉ được có duy nhất 1 abstract method?", answer: "Functional Interface là Interface chỉ có duy nhất một phương thức trừu tượng (quy tắc SAM) được thiết kế riêng để dùng với Lambda. Nó chỉ được phép có 1 abstract method vì khi ta viết biểu thức Lambda, Java cần biết đích xác biểu thức đó đang implement cho phương thức duy nhất nào, nếu có 2 thì compiler sẽ không thể 'đoán' được." },
+            { category: "Cơ Bản - Java 8 & 17", question: "Câu 12: Biểu thức Lambda giải quyết vấn đề gì và Method Reference có ưu điểm gì so với Lambda thông thường?", answer: "Biểu thức Lambda giúp biểu diễn các phương thức của Interface dưới dạng các hàm ẩn danh ngắn gọn, giúp code sạch hơn và loại bỏ việc phải viết các class ẩn danh (anonymous class) dài dòng như trước đây. Method Reference (ví dụ System.out::println) có ưu điểm chính là làm code ngắn gọn, dễ đọc và trực quan hơn (tính khai báo cao) khi ta chỉ muốn gọi lại một method đã có sẵn mà không cần thêm bất kỳ logic biến đổi nào khác." },
+            { category: "Cơ Bản - Java 8 & 17", question: "Câu 13: Tại sao Java 8 lại cho phép viết phương thức default có thân hàm bên trong Interface? Điều này có đi ngược lại với tính trừu tượng không?", answer: "Việc này không phá vỡ tính trừu tượng mà để giải quyết bài toán 'Tương thích ngược' (Backward Compatibility). Nhờ có default method, người ta có thể thêm phương thức mới vào Interface mà không làm hỏng (break) mã nguồn của các lớp đang implement Interface đó từ trước." },
+            { category: "Cơ Bản - Java 8 & 17", question: "Câu 14: Stream API mang lại ưu điểm gì và hai phương thức filter(), map() khác nhau thế nào?", answer: "Stream API cung cấp cách xử lý tập hợp dữ liệu theo phong cách hướng hàm, giúp thao tác gọn gàng, tuần tự hoặc dễ dàng xử lý đa luồng (parallelStream) để tăng hiệu suất phần mềm. Phương thức filter() dùng để lọc và giữ lại các phần tử thỏa mãn điều kiện nhất định, còn map() dùng để chuyển đổi (biến đổi) dữ liệu từ kiểu này sang kiểu/kết quả khác." },
+            { category: "Cơ Bản - Java 8 & 17", question: "Câu 15: Đối tượng Optional<T> sinh ra để giải quyết vấn đề gì? Nó có thay thế hoàn toàn được if (obj != null) không?", answer: "Optional là một vùng chứa (container) có thể chứa giá trị hoặc rỗng, dùng làm kiểu trả về cho phương thức để thông báo cho người gọi rằng kết quả có thể rỗng. Nó ép buộc lập trình viên phải kiểm tra dữ liệu trước khi dùng, từ đó triệt tiêu lỗi NullPointerException lúc runtime. Tuy nhiên, không nên dùng nó chỉ để bọc một biến local thay cho kiểm tra null vì có thể gây lỗi NoSuchElementException nếu dùng .get() ngay lập tức." },
+            { category: "Cơ Bản - Java 8 & 17", question: "Câu 16: DateTime API mới (LocalDateTime) có ưu điểm gì cốt lõi so với java.util.Date ngày xưa?", answer: "LocalDateTime là Immutable (bất biến) và Thread-safe. Ngoài ra, các hàm của nó (cộng trừ ngày tháng) rõ ràng, dễ dùng và không bị lỗi đếm tháng từ 0 (Zero-based month) ngớ ngẩn như Date cũ." },
+            { category: "Cơ Bản - Java 8 & 17", question: "Câu 17: Tính năng Record trong Java 17 sinh ra để giải quyết sự cồng kềnh nào của các class POJO/Entity truyền thống?", answer: "Record sinh ra để tạo các Data Class một cách nhanh chóng, thay vì phải viết hàng chục dòng code cho Constructor, Getter, Setter, equals(), hashCode(), toString(), ta chỉ cần 1 dòng khai báo Record. Nó giúp code gọn gàng, loại bỏ boilerplate code và đảm bảo tính bất biến (Immutable) của dữ liệu mang đi." },
+
+            // Phần 4: Đa luồng
+            { category: "Cơ Bản - Đa luồng", question: "Câu 18: Thread (Luồng) là gì và tại sao ứng dụng thực tế lại cần MultiThreading?", answer: "Thread là đơn vị thực thi một nhiệm vụ cụ thể. Việc dùng MultiThreading (Đa luồng) giúp ứng dụng chia nhỏ các công việc ra để chạy song song, tận dụng tối đa CPU nhiều nhân và giúp ứng dụng mượt mà hơn." },
+            { category: "Cơ Bản - Đa luồng", question: "Câu 19: Hãy nêu 5 trạng thái trong vòng đời của một Thread.", answer: "Vòng đời Thread gồm: New (Khởi tạo), Runnable (Sẵn sàng chạy), Blocked (Bị chặn), Waiting / Timed Waiting (Chờ đợi), và Terminated (Kết thúc)." },
+            { category: "Cơ Bản - Đa luồng", question: "Câu 20: Sự khác biệt giữa việc gọi start() và run() khi kích hoạt một Thread là gì?", answer: "Gọi run() chỉ đơn thuần là gọi một method bình thường chạy trên Thread hiện tại (Main Thread). Chỉ khi gọi start(), JVM mới thực sự tạo ra một tiến trình con mới và thực thi đa luồng song song." },
+            { category: "Cơ Bản - Đa luồng", question: "Câu 21: Sự khác biệt lớn nhất giữa Thread.sleep() và Object.wait() về cơ chế nhả khóa (Lock) là gì?", answer: "Khi gọi sleep(), thread tạm dừng nhưng vẫn ôm chặt Lock không nhả. Khi gọi wait(), thread sẽ nhả Lock ra để các thread khác có thể sử dụng tài nguyên đó, và nó sẽ chờ đến khi được notify()." },
+            { category: "Cơ Bản - Đa luồng", question: "Câu 22: Từ khóa synchronized được dùng trong hoàn cảnh nào và Deadlock là gì?", answer: "synchronized được sử dụng để quản lý đồng bộ, dùng khi có nhiều Thread cùng chia sẻ, tranh chấp truy cập vào một tài nguyên, giúp khóa tài nguyên đó lại để đảm bảo tính nhất quán của dữ liệu. Deadlock là hiện tượng 2 hay nhiều Thread cùng giữ khóa (lock) và chờ đợi tài nguyên của nhau dẫn đến ứng dụng bị treo vĩnh viễn." },
+
+            // Phần 5: Kiến trúc & Design Pattern
+            { category: "Cơ Bản - Kiến trúc & Pattern", question: "Câu 23: Design Pattern là gì? Hãy phân biệt mục đích cốt lõi của 3 nhóm Creational, Structural và Behavioral.", answer: "Design Pattern là tập hợp các giải pháp thiết kế phần mềm chuẩn mực đã được chứng minh. Nhóm Creational giải quyết câu chuyện tạo ra đối tượng sao cho an toàn và giấu được logic phức tạp. Nhóm Structural giúp lắp ráp các đối tượng/class có sẵn thành một cấu trúc lớn hơn, tương thích với nhau. Nhóm Behavioural quản lý cách các đối tượng giao tiếp, chia sẻ trách nhiệm và truyền tin cho nhau." },
+            { category: "Cơ Bản - Kiến trúc & Pattern", question: "Câu 24: Theo nguyên lý SRP (Single Responsibility Principle), dấu hiệu nào cho thấy một Class đang ôm đồm quá nhiều trách nhiệm?", answer: "Dấu hiệu vi phạm SRP là khi ta nhận thấy có nhiều hơn 1 lý do để phải vào sửa code của class đó. Ví dụ: class Employee vừa chứa logic tính lương, vừa chứa logic lưu xuống Database, khi đổi công thức lương hoặc đổi Database ta đều phải sửa class này." },
+            { category: "Cơ Bản - Kiến trúc & Pattern", question: "Câu 25: Giải thích nguyên lý Open/Closed (OCP) bằng một ví dụ thực tế.", answer: "OCP có nghĩa là 'Mở để mở rộng, đóng để sửa đổi'. Ví dụ: Có class tính diện tích hình tròn, khi cần tính thêm hình vuông, thay vì sửa code class cũ (đóng), ta tạo một Interface Shape và để các hình tự implement logic của mình (mở)." },
+            { category: "Cơ Bản - Kiến trúc & Pattern", question: "Câu 26: Design Pattern Factory Method giúp giải quyết bài toán gì so với việc ta dùng từ khóa new trực tiếp khắp nơi?", answer: "Factory Method giúp gom phần logic khởi tạo đối tượng phức tạp vào một nơi duy nhất (Factory). Nếu sau này quá trình khởi tạo thay đổi hoặc cần sinh ra các class con khác nhau dựa theo điều kiện, ta chỉ cần sửa ở Factory thay vì đi tìm và sửa hàng loạt chỗ dùng từ khóa new." },
+            { category: "Cơ Bản - Kiến trúc & Pattern", question: "Câu 27: Facade Pattern giải quyết vấn đề gì trong cấu trúc phần mềm?", answer: "Facade Pattern giúp tạo ra một giao diện (Interface) đơn giản, nhất quán bên ngoài để bao bọc và che giấu đi toàn bộ sự phức tạp của hàng loạt hệ thống/chức năng con bên dưới, giúp Client dễ dàng gọi và sử dụng hơn." },
+
+            // Phần 6: JDBC Cơ bản
+            { category: "Cơ Bản - JDBC", question: "Câu 28: Tại sao Connection, Statement, ResultSet trong JDBC lại là Interface mà không phải là Class?", answer: "JDBC chỉ là một bộ đặc tả API (Specification) do Java cung cấp. Việc kết nối thực tế xuống database như thế nào là do các hãng (Vendor như MySQL, Oracle, SQL Server) tự viết code (Driver) để implement các Interface này. Điều này giúp ứng dụng Java không bị phụ thuộc cứng vào bất kỳ database nào, dễ dàng thay đổi DB chỉ bằng cách đổi Driver." },
+            { category: "Cơ Bản - JDBC", question: "Câu 29: Tại sao PreparedStatement luôn được khuyên dùng thay cho Statement truyền thống?", answer: "Về bảo mật, PreparedStatement dùng 'parameterized queries' (các dấu ?) tách biệt dữ liệu và câu lệnh SQL, chặn đứng tấn công SQL Injection. Về hiệu năng, DB engine sẽ biên dịch (Pre-compile) câu lệnh SQL một lần và lưu cache; các lần sau chỉ việc thay tham số vào chạy nên nhanh hơn." },
+            { category: "Cơ Bản - JDBC", question: "Câu 30: Khi làm các bài thực hành CRUD, thao tác Insert/Update/Delete (dùng executeUpdate()) trả về một số nguyên (int) mang ý nghĩa gì?", answer: "Thao tác thay đổi dữ liệu không trả về bảng kết quả, mà trả về số lượng dòng (rows) bị ảnh hưởng trong Database. Nhờ số int này, developer biết được lệnh có thành công thực sự hay không (nếu trả về 0 tức là không có dòng nào được cập nhật/xóa)." },
+
+            // ================= TRUNG BÌNH =================
+            // Phần 1: Nhận diện lỗi xử lý Ngoại lệ
+            { category: "Trung Bình - Lỗi Ngoại lệ", question: "Câu 1: Đoạn code xử lý ngoại lệ có khối catch (Exception e) để trống bộc lộ code smell gì?", answer: "Đây là lỗi 'Swallowing Exception' (Nuốt ngoại lệ) rất phổ biến. Nếu có lỗi xảy ra, chương trình sẽ chạy tiếp như không có chuyện gì, không in ra log, không báo lỗi. Khi hệ thống chạy sai, developer sẽ không có một manh mối nào để debug." },
+            { category: "Trung Bình - Lỗi Ngoại lệ", question: "Câu 2: Gọi fw.write('Hello'); và ngay sau đó gọi fw.close(); có đảm bảo File luôn được đóng an toàn không? Tại sao?", answer: "Không an toàn. Nếu lệnh write() tung ngoại lệ, lệnh close() bên dưới sẽ không bao giờ được chạy, dẫn đến file sẽ bị rò rỉ (leak) bộ nhớ. Cách sửa đúng là dùng khối Try-with-resources để tự động đóng file dù có lỗi hay không." },
+            { category: "Trung Bình - Lỗi Ngoại lệ", question: "Câu 3: Nếu khối try có return 1; nhưng finally có return 2;. Hàm trả về bao nhiêu? Hậu quả?", answer: "Hàm sẽ trả về 2. Khối finally luôn luôn được chạy trước khi hàm thực sự kết thúc. Việc đặt lệnh return trong finally là một 'anti-pattern' vì nó sẽ đè mất (override) giá trị trả về ban đầu của khối try hoặc đè luôn cả Exception nếu có lỗi xảy ra trước đó." },
+            { category: "Trung Bình - Lỗi Ngoại lệ", question: "Câu 4: Hàm insert trả về boolean, catch (SQLException e) in lỗi nhưng vẫn return true;. Hậu quả ở UI là gì?", answer: "Gây ra lỗi Logic Hiển thị sai lệch (False Positive). Khi có lỗi DB xảy ra, console in ra lỗi nhưng hàm báo true. UI nhận được true sẽ báo 'Thành công!' trong khi thực tế dữ liệu chưa lưu vào CSDL. Catch phải trả về false hoặc ném Exception lên." },
+            { category: "Trung Bình - Lỗi Ngoại lệ", question: "Câu 5: Tại sao sử dụng trực tiếp throw new Exception('Lỗi rồi!'); bị coi là thiết kế tồi?", answer: "Khởi tạo thẳng đối tượng lớp Exception cao nhất làm mất thông tin về loại lỗi cụ thể, ép phương thức gọi nó phải catch Exception chung chung. Điều này dẫn đến khó xử lý lỗi đặc thù và dễ bỏ sót lỗi khác." },
+            { category: "Trung Bình - Lỗi Ngoại lệ", question: "Câu 6: Làm thế nào để quyết định nên ném ra Checked hay Unchecked Exception?", answer: "Checked Exception dùng cho lỗi mà người gọi hàm có thể dự đoán và có khả năng phục hồi (lỗi mạng, đọc file). Unchecked Exception dùng cho lỗi logic lập trình (chia cho 0, NullPointer) mà ứng dụng không bắt buộc xử lý và không thể tự phục hồi." },
+            { category: "Trung Bình - Lỗi Ngoại lệ", question: "Câu 7: Cơ chế lan truyền (Propagation) hoạt động ra sao nếu lỗi đẩy lên tới main mà main vẫn throws?", answer: "Khi gặp lỗi, JVM tìm ngược lên Call Stack để tìm khối catch xử lý. Nếu tìm đến main mà vẫn bị đẩy đi, JVM sẽ làm chương trình bị dừng đột ngột (Crash) và in ra dấu vết ngăn xếp (Stack Trace)." },
+
+            // Phần 2: Nhận diện lỗi Java 8 & 17
+            { category: "Trung Bình - Lỗi Java 8/17", question: "Câu 8: Bạn có một Stream, gọi .filter() nhưng không thấy vòng lọc in ra log. Lỗi do đâu?", answer: "Do nguyên lý 'Lazy Evaluation' của Stream. Nếu không có một 'Terminal Operation' (như .collect(), .forEach()) ở cuối, thì các bước trung gian (như .filter()) sẽ không bao giờ được thực thi." },
+            { category: "Trung Bình - Lỗi Java 8/17", question: "Câu 9: Dùng names.stream().filter(...).forEach(n -> result.add(n)); để add dữ liệu vào List bên ngoài vi phạm nguyên tắc gì?", answer: "Vi phạm nguyên tắc Side-effect (tác dụng phụ) của Stream. Stream không nên làm thay đổi trạng thái của các biến bên ngoài, dễ sinh lỗi nếu chạy đa luồng. Cách sửa là dùng .collect(Collectors.toList())." },
+            { category: "Trung Bình - Lỗi Java 8/17", question: "Câu 10: Tại sao trong Lambda, tăng biến đếm count++ khai báo bên ngoài lại bị Compile Error?", answer: "Do vi phạm quy tắc 'effectively final'. Biến cục bộ dùng bên trong Lambda bắt buộc không bị thay đổi giá trị sau khởi tạo, nhằm đảm bảo an toàn bộ nhớ trong đa luồng." },
+            { category: "Trung Bình - Lỗi Java 8/17", question: "Câu 11: Phân tích sự cồng kềnh: if (user.isPresent()) { print(user.get().getName()); } else { print('Guest'); }?", answer: "Cách viết rườm rà không khác gì check if != null cũ. Tận dụng Functional Style của Java 8 bằng 1 dòng: System.out.println(user.map(User::getName).orElse('Guest'));" },
+            { category: "Trung Bình - Lỗi Java 8/17", question: "Câu 12: Khi xử lý Optional, khi nào nên ưu tiên dùng orElseGet() thay vì orElse()?", answer: "Dùng orElseGet() tốt cho hiệu năng nếu khởi tạo giá trị mặc định phức tạp. orElse() luôn tính toán giá trị truyền vào kể cả khi Optional không rỗng, còn orElseGet() tính 'lazy', chỉ chạy nếu Optional thực sự rỗng." },
+            { category: "Trung Bình - Lỗi Java 8/17", question: "Câu 13: Hiện tượng 'Diamond Problem' (Xung đột đa kế thừa) trong Java 8 xảy ra khi nào và xử lý ra sao?", answer: "Xảy ra khi 1 class implement 2 Interface có cùng default method. Java không biết kế thừa hàm nào nên báo Compile Error. Bắt buộc Override lại phương thức đó và gọi đích danh logic qua InterfaceName.super.methodName()." },
+
+            // Phần 3: Nhận diện lỗi Đa luồng
+            { category: "Trung Bình - Lỗi Đa luồng", question: "Câu 14: Phân tích lỗi ẩn trong public int next() { return value++; } ở môi trường đa luồng?", answer: "Sẽ xảy ra lỗi Race Condition. Phép toán value++ không Atomic (Đọc -> Cộng -> Ghi). Nếu 2 thread cùng đọc giá trị 0, chúng sẽ cùng ghi đè lại 1 thay vì 2." },
+            { category: "Trung Bình - Lỗi Đa luồng", question: "Câu 15: Tại sao Singleton Lazy Init: if (instance == null) { instance = new Object(); } lại nguy hiểm?", answer: "Không an toàn trong đa luồng. Hai thread có thể lọt qua check if cùng lúc, dẫn đến khởi tạo object 2 lần, phá vỡ nguyên tắc duy nhất của Singleton." },
+            { category: "Trung Bình - Lỗi Đa luồng", question: "Câu 16: Áp dụng synchronized vào toàn bộ Method và vào Block code, cách nào tối ưu hơn?", answer: "Sử dụng 'Synchronized Block' tối ưu hơn. Nó giảm thiểu lượng mã phải khóa, giúp các thread khác không phải chờ đợi quá lâu, cải thiện hiệu suất và giảm nguy cơ Deadlock." },
+            { category: "Trung Bình - Lỗi Đa luồng", question: "Câu 17: Gọi lệnh lock.wait() đơn thuần sẽ ném ngoại lệ IllegalMonitorStateException. Tại sao?", answer: "Do gọi wait() mà không nằm trong khối synchronized. Một thread chỉ có thể gọi wait() khi nó THỰC SỰ sở hữu lock đó. Code phải bọc trong synchronized(lock) { lock.wait(); }." },
+            { category: "Trung Bình - Lỗi Đa luồng", question: "Câu 18: Chuyện gì xảy ra nếu luồng Main gọi method join() của Thread B?", answer: "Luồng main sẽ bị chặn (block) hoàn toàn. Main thread sẽ dừng lại chờ cho đến khi Thread B chạy xong mọi công việc thì Main mới được tiếp tục thực thi." },
+
+            // Phần 4: Vấn đề Unit Test & Pattern
+            { category: "Trung Bình - Unit Test & Pattern", question: "Câu 19: Unit Test đối chiếu trực tiếp với System.currentTimeMillis() có rủi ro gì?", answer: "Test phụ thuộc vào thời gian thực tế, dẫn tới tính không xác định (non-deterministic). Khó lặp lại kết quả y hệt (flaky test). Cần truyền giá trị thời gian tĩnh cố định để test ổn định." },
+            { category: "Trung Bình - Unit Test & Pattern", question: "Câu 20: Trong 4 bước Unit Test, Verify giải quyết bài toán gì khác so với Assert?", answer: "Assert dùng để so sánh trạng thái kết quả trả về thực tế với mong đợi. Verify dùng để kiểm tra hành vi tương tác với các đối tượng giả (Mock), xác nhận phương thức bên ngoài có thực sự được gọi hay không." },
+            { category: "Trung Bình - Unit Test & Pattern", question: "Câu 21: Class Robot implement Worker (work, eat) nhưng bỏ trống eat(). Vi phạm nguyên lý SOLID nào?", answer: "Vi phạm Interface Segregation Principle (ISP). Không nên ép class implement phương thức không dùng đến. Cần tách thành 2 Interface là Workable và Eatable." },
+            { category: "Trung Bình - Unit Test & Pattern", question: "Câu 22: Hàm tính giảm giá dùng if (type.equals('VIP')) ... else if ... bộc lộ nhược điểm gì?", answer: "Vi phạm Open/Closed Principle (OCP). Nếu thêm khách mới, phải mở class ra thêm else if, làm code phình to và dễ hỏng logic cũ. Cần áp dụng Đa hình hoặc Strategy Pattern." },
+            { category: "Trung Bình - Unit Test & Pattern", question: "Câu 23: Khởi tạo Singleton kiểu Eager Initialization (public static final instance = new...) có nhược điểm gì?", answer: "Gây lãng phí tài nguyên và làm chậm quá trình khởi động ứng dụng. Object được tạo ngay lập tức khi ứng dụng vừa chạy, kể cả khi người dùng chưa hề chạm tới chức năng đó." },
+            { category: "Trung Bình - Unit Test & Pattern", question: "Câu 24: Factory dùng if-else sinh đối tượng, nếu không khớp return null;. Lỗi rủi ro ở đây là gì?", answer: "Có thể gây ra NullPointerException ngầm cho các đoạn code gọi nó. Thay vì trả về null, Factory nên chủ động throw IllegalArgumentException để dừng ứng dụng tại thời điểm phát sinh lỗi." },
+
+            // Phần 5: Nhận diện lỗi CSDL (JDBC)
+            { category: "Trung Bình - Lỗi CSDL (JDBC)", question: "Câu 25: Code đọc DB xong không đóng Connection. Hậu quả là gì?", answer: "Gây ra Rò rỉ kết nối (Connection Leak). Nếu hàm gọi nhiều lần, hệ thống cạn kiệt số lượng Connection trong Pool và làm sập DB. Phải đóng bằng Try-with-resources hoặc finally." },
+            { category: "Trung Bình - Lỗi CSDL (JDBC)", question: "Câu 26: Trong finally của JDBC, thứ tự thực hiện các lệnh close() thế nào để tránh rò rỉ?", answer: "Luôn đóng theo thứ tự ngược lại lúc tạo: rs.close() đóng trước -> stmt.close() -> cuối cùng mới là conn.close()." },
+            { category: "Trung Bình - Lỗi CSDL (JDBC)", question: "Câu 27: Nối chuỗi input trực tiếp vào SQL (WHERE name = ' + input + ') đối mặt lỗ hổng nào?", answer: "Lỗ hổng bảo mật nghiêm trọng SQL Injection. Hacker chèn mã phụ (như ' OR '1'='1) để đánh cắp dữ liệu. Bắt buộc dùng PreparedStatement để chặn lỗi này." },
+            { category: "Trung Bình - Lỗi CSDL (JDBC)", question: "Câu 28: Khi truyền dữ liệu pstmt.setString(index, value), dễ gặp lỗi ngớ ngẩn nào về index?", answer: "Chỉ số index của PreparedStatement bắt đầu từ số 1. Rất dễ truyền nhầm do tư duy mảng của Java luôn bắt đầu từ 0." },
+            { category: "Trung Bình - Lỗi CSDL (JDBC)", question: "Câu 29: Quản lý Transaction: Tắt AutoCommit -> Update 1 -> Update 2 -> connection.close(). Bỏ quên điều gì?", answer: "Quên gọi conn.commit();. Khi tắt auto-commit, mọi thay đổi chỉ lưu trong bộ nhớ ảo. Đóng connection mà chưa commit, toàn bộ update bị DB hủy bỏ ngầm (rollback tự động)." },
+            { category: "Trung Bình - Lỗi CSDL (JDBC)", question: "Câu 30: Để đổi Isolation Level tránh Dirty Read, lệnh setTransactionIsolation() đặt ở đâu là đúng nhất?", answer: "Bắt buộc gọi trước khi gọi lệnh conn.setAutoCommit(false). Đảm bảo cấp độ cô lập được hệ thống nhận diện và áp dụng chính xác cho toàn bộ khối transaction ngay khi bắt đầu." },
+
+            // ================= KHÓ =================
+            // Phần 1: Xử lý tình huống Ngoại lệ & Testing
+            { category: "Khó - Ngoại lệ & Test", question: "Câu 1: Người dùng nhập chữ vào ô tuổi sinh lỗi. Lỗi khách quan hay chủ quan? Xử lý thế nào?", answer: "Lỗi chủ quan (logic lập trình do không check đầu vào) thuộc Unchecked Exception. Không lạm dụng try-catch giấu lỗi. Dùng if-else kiểm tra trước (Defensive Programming) hoặc chủ động ném IllegalArgumentException." },
+            { category: "Khó - Ngoại lệ & Test", question: "Câu 2: Tại sao Senior đánh giá viết throw new Exception('Lỗi!'); là 'Anti-pattern' cần cấm?", answer: "Khởi tạo trực tiếp lớp Exception chung chung làm bốc hơi toàn bộ thông tin loại lỗi. Ép phương thức gọi phải catch chung chung cồng kềnh, dễ bỏ sót lỗi hệ thống. Luôn dùng lỗi cụ thể hoặc Custom Exception." },
+            { category: "Khó - Ngoại lệ & Test", question: "Câu 3: Kiến trúc Controller -> Service -> Repository. Đứt mạng ở Repo. Đặt catch tại Repo hay đẩy throws lên Controller?", answer: "Dùng throws đẩy trách nhiệm lên tầng trên và chỉ đặt catch ở tầng có đủ thông tin quyết định (Controller). Tại Controller có thể chuyển hóa lỗi thành thông báo thân thiện ('Hệ thống bảo trì') hiển thị UI thay vì crash app." },
+            { category: "Khó - Ngoại lệ & Test", question: "Câu 4: Console nhập Ngày sinh sai format bị crash. Thiết kế code sao để bắt nhập lại liên tục đến khi đúng?", answer: "Dùng vòng lặp while(true) kết hợp try-catch. Bên trong gọi LocalDate.parse. Nếu thành công dùng break thoát. Nếu sai bắt DateTimeParseException in ra 'Vui lòng nhập lại' để vòng lặp quay lại tiếp tục chạy." },
+            { category: "Khó - Ngoại lệ & Test", question: "Câu 5: Viết Unit Test cho Service gọi API Momo, tại sao doanh nghiệp cấm gọi API thật mà bắt dùng Mock?", answer: "Unit test chỉ kiểm tra logic nội bộ, độc lập thế giới ngoài. Gọi thật làm test phụ thuộc mạng bên thứ 3, chạy rất chậm và sinh lỗi chập chờn (flaky test). Dùng Mock mô phỏng để test luôn ổn định." },
+            { category: "Khó - Ngoại lệ & Test", question: "Câu 6: Mô hình 4 bước Unit Test, nếu hàm cần test là void (không trả về dữ liệu). Test đúng sai thế nào?", answer: "Không thể Assert. Phải sử dụng bước Verify kiểm tra hành vi (Behavior Testing). Xác minh xem đối tượng Mock quản lý có thực sự được gọi đến với đúng tham số mong muốn hay không." },
+
+            // Phần 2: Xử lý tình huống Java 8, 17 & Đa luồng
+            { category: "Khó - Java & MultiThread", question: "Câu 7: Tự lấy ms của 2 mốc thời gian trừ nhau chia 24h tiềm ẩn rủi ro sai số nào? Giải pháp Java 8?", answer: "Sai lệch nghiêm trọng nếu rơi vào đổi múi giờ mùa Hè/Đông (DST) hoặc năm nhuận. Giải pháp dùng API có sẵn: ChronoUnit.DAYS.between(date1, date2) để hệ thống tự xử lý góc chết múi giờ." },
+            { category: "Khó - Java & MultiThread", question: "Câu 8: Tính tổng 1 triệu Đơn hàng. Chuyển stream() sang parallelStream() có luôn mang lại hiệu suất tốt hơn không?", answer: "Không phải lúc nào cũng nhanh hơn. Đa luồng luôn tiêu tốn chi phí (overhead) để tách/gộp luồng. Nếu xử lý quá đơn giản, phần overhead này lớn hơn thời gian xử lý thực, làm hệ thống chậm hơn." },
+            { category: "Khó - Java & MultiThread", question: "Câu 9: Lấy dữ liệu kèm bộ đệm mặc định, nếu khởi tạo mặc định tốn nhiều tài nguyên, dùng orElse() hay orElseGet()?", answer: "Bắt buộc dùng orElseGet(). orElse() luôn khởi tạo giá trị bất chấp Optional có rỗng không. orElseGet() tính toán 'lazy', chỉ thực sự khởi tạo đối tượng khi Optional rỗng, tối ưu tài nguyên." },
+            { category: "Khó - Java & MultiThread", question: "Câu 10: Xây dựng DTO luân chuyển API và Database trong Java 17, tính năng nào giúp làm sạch code tuyệt đối?", answer: "Tính năng Record. Trình biên dịch tự sinh constructor, getter, equals, hashCode, toString. Loại bỏ hoàn toàn boilerplate code và đảm bảo tính bất biến." },
+            { category: "Khó - Java & MultiThread", question: "Câu 11: Deadlock: A giữ Khóa 1 đợi 2, B giữ 2 đợi 1. Quy định luật gì để triệt tiêu lỗi này?", answer: "1. Quy định thứ tự xin khóa chặt chẽ (luôn lấy 1 rồi mới lấy 2). 2. Dùng cơ chế Timeout tryLock(time), nếu đợi quá lâu sẽ bỏ cuộc, nhả khóa giải phóng tài nguyên." },
+            { category: "Khó - Java & MultiThread", question: "Câu 12: Producer-Consumer: A tải file, B chờ nén. B dùng while(true) liên tục check gây vắt kiệt CPU. Giải pháp?", answer: "Áp dụng đồng bộ wait() và notify(). B gọi wait() nhả CPU ngủ đông. Khi A tải xong gọi notify() đánh thức B xử lý tiếp." },
+            { category: "Khó - Java & MultiThread", question: "Câu 13: Tại sao muốn nhường quyền truy cập vùng nhớ không thể gọi sleep() mà bắt buộc gọi wait()?", answer: "sleep() chỉ tạm dừng nhưng vẫn ôm giữ chặt khóa lock. wait() là phương thức giao tiếp, khi gọi lập tức nhường khóa lock cho Thread khác và ngoan ngoãn chờ đánh thức." },
+
+            // Phần 3: Xử lý tình huống Kiến trúc
+            { category: "Khó - Kiến trúc SOLID", question: "Câu 14: Lớp Hình Vuông kế thừa Hình Chữ Nhật vi phạm SOLID nào và rủi ro ở đâu?", answer: "Vi phạm Liskov Substitution Principle (LSP). Lớp con không thay thế được lớp cha mà không làm hỏng logic. HCN đổi 1 chiều độc lập, HV đổi 1 cạnh kéo cạnh kia theo, dùng đa hình sẽ bị sai hoàn toàn." },
+            { category: "Khó - Kiến trúc SOLID", question: "Câu 15: Tích hợp thư viện thanh toán Interface lạ nhưng cấm sửa mã nguồn cũ đang chạy tốt. Dùng Pattern nào?", answer: "Áp dụng Adapter Pattern. Tạo lớp trung gian (Adapter) dịch và chuyển đổi Interface không tương thích sang Interface chuẩn Client mong muốn mà không sửa code cũ." },
+            { category: "Khó - Kiến trúc SOLID", question: "Câu 16: E-commerce: Nút 'Đặt hàng' phải Gửi Mail, Trừ kho, SMS. Nhét 3 lệnh vào hàm Đặt hàng vi phạm gì và khắc phục?", answer: "Vi phạm OCP (thêm kênh phải sửa hàm). Khắc phục: Observer Pattern. Lớp Đặt hàng là Publisher hô 'Có đơn', EmailService/InventoryService là Subscriber tự lắng nghe xử lý riêng rẽ (loose coupling)." },
+            { category: "Khó - Kiến trúc SOLID", question: "Câu 17: Hệ thống yêu cầu lưu RAM, sau đó đổi sang Database. Thiết kế từ đầu sao để UI không đổi 1 chữ (DIP)?", answer: "Áp dụng DIP. Tạo Interface IStudentRepository. UI chỉ giao tiếp qua Interface. Sau này đổi MemoryRepo thành JDBCRepo chỉ cần inject lớp mới. UI hoàn toàn 'mù' không bị ảnh hưởng." },
+            { category: "Khó - Kiến trúc SOLID", question: "Câu 18: Microservices có nhiều API lẻ (Đặt, Thanh toán, Vận chuyển) làm Frontend ghép mệt. Backend xử lý Pattern nào?", answer: "Áp dụng Facade Pattern. Xây dựng lớp cổng giao tiếp hợp nhất cung cấp Interface đơn giản, ẩn đi sự phức tạp hệ thống con phía sau, giúp Client (Frontend) gọi 1 API là xong." },
+
+            // Phần 4: Xử lý tình huống Cơ sở dữ liệu (JDBC & Transaction)
+            { category: "Khó - Tình huống JDBC", question: "Câu 19: Import 5000 file Excel, chạy đến 2500 rớt mạng. Không có Transaction hậu quả gì? Xử lý code ra sao?", answer: "Sinh 'Dữ liệu dơ' (một nửa bị mất, chạy lại bị duplicate). Khắc phục: Tắt AutoCommit. Chạy batch insert. Xong 5000 record gọi commit(). Nếu văng Exception -> nhảy vào catch gọi rollback() dọn dẹp sạch." },
+            { category: "Khó - Tình huống JDBC", question: "Câu 20: SELECT 1 triệu KH đưa vào List<Customer> gửi email làm RAM tràn sập app. Xử lý bằng JDBC ra sao?", answer: "Không nạp toàn bộ vào RAM. Dùng statement.setFetchSize(100) lấy từng lô nhỏ. Dùng while(rs.next()) gửi mail ai xong vứt data người đó, không lưu vào List." },
+            { category: "Khó - Tình huống JDBC", question: "Câu 21: Join 5 bảng 10.000 dòng tính lương qua JDBC tốn 10 phút. Rút gọn xuống 5s bằng kỹ thuật gì?", answer: "Tránh Network Overhead. Chuyển logic phức tạp xuống Database viết thành Stored Procedure. Java dùng CallableStatement gọi. Tính toán nội bộ tại RAM CSDL cực nhanh." },
+            { category: "Khó - Tình huống JDBC", question: "Câu 22: Nghiệp vụ Chuyển tiền (Trừ A, Cộng B), việc gọi conn.setAutoCommit(false) đóng vai trò sinh tử như thế nào?", answer: "JDBC mặc định auto-commit (chạy xong lưu luôn). Tắt auto-commit gom 2 lệnh SQL vào 1 Transaction. Nếu Cộng tiền hỏng, có quyền rollback() hủy thao tác Trừ tiền trước đó, giữ toàn vẹn nguyên tử (Atomicity)." },
+            { category: "Khó - Tình huống JDBC", question: "Câu 23: Sự cố mất điện lúc Transaction ghi đĩa dang dở. Cơ chế DB nào đảm bảo không mất/hỏng dữ liệu?", answer: "Cơ chế WAL (Write-Ahead Logging). Ghi lịch sử vào log trước khi cập nhật đĩa. Mất điện khởi động lại, DB đọc file log để khôi phục (recovery) thao tác đã commit hoặc đảo ngược (rollback) thao tác dang dở." },
+            { category: "Khó - Tình huống JDBC", question: "Câu 24: Statement truyền nối chuỗi (WHERE user = ' + username + ') tiềm ẩn thảm họa nào và khắc phục?", answer: "SQL Injection (Hacker chèn mã phụ). Khắc phục: Dùng PreparedStatement. Tham số ? tiền biên dịch (pre-compile) ép CSDL coi input 100% là Data thuần túy, không được chạy như Command." }
+        ];
+
+        let currentFilteredData = [...data];
+        let currentFlashcardIndex = 0;
+
+        const questionListEl = document.getElementById('questionList');
+        const categoryFilterEl = document.getElementById('categoryFilter');
+        const modalEl = document.getElementById('flashcardModal');
+        const cardEl = document.getElementById('flashcardElement');
+
+        function initApp() {
+            // Lấy danh sách nhóm duy nhất
+            const categories = [...new Set(data.map(item => item.category))];
+            categories.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat;
+                const count = data.filter(i => i.category === cat).length;
+                option.textContent = `${cat} (${count} câu)`;
+                categoryFilterEl.appendChild(option);
+            });
+
+            renderList(data);
+        }
+
+        // Tối ưu Performance Render DOM
+        function renderList(listData) {
+            questionListEl.innerHTML = ''; 
+            const fragment = document.createDocumentFragment();
+
+            listData.forEach((item, index) => {
+                const details = document.createElement('details');
+                const summary = document.createElement('summary');
+                const answerDiv = document.createElement('div');
+
+                summary.textContent = `${index + 1}. [${item.category}] ${item.question}`;
+                answerDiv.className = 'answer-content';
+                answerDiv.textContent = item.answer;
+
+                details.appendChild(summary);
+                details.appendChild(answerDiv);
+                fragment.appendChild(details);
+            });
+
+            questionListEl.appendChild(fragment);
+        }
+
+        categoryFilterEl.addEventListener('change', (e) => {
+            const selected = e.target.value;
+            currentFilteredData = selected === 'ALL' 
+                ? [...data] 
+                : data.filter(item => item.category === selected);
+            
+            renderList(currentFilteredData);
+            currentFlashcardIndex = 0;
+        });
+
+        // Event Listeners cho Modal Flashcard
+        document.getElementById('btnOpenFlashcard').addEventListener('click', () => {
+            if(currentFilteredData.length === 0) return alert("Không có dữ liệu ở bộ lọc này!");
+            currentFlashcardIndex = 0;
+            updateFlashcardUI();
+            modalEl.classList.add('active');
+        });
+
+        document.getElementById('btnCloseModal').addEventListener('click', () => {
+            modalEl.classList.remove('active');
+            cardEl.classList.remove('flipped');
+        });
+
+        function updateFlashcardUI() {
+            const currentItem = currentFilteredData[currentFlashcardIndex];
+            
+            cardEl.classList.remove('flipped');
+            
+            setTimeout(() => {
+                document.getElementById('cardCategoryFront').textContent = currentItem.category;
+                document.getElementById('cardCategoryBack').textContent = currentItem.category;
+                
+                // Loại bỏ tiền tố "Câu X:" khi hiển thị trong Flashcard cho gọn
+                let displayQuestion = currentItem.question.replace(/^Câu \d+:\s*/, '');
+                document.getElementById('cardQuestion').textContent = displayQuestion;
+                
+                document.getElementById('cardAnswer').textContent = currentItem.answer;
+                document.getElementById('cardCounter').textContent = `${currentFlashcardIndex + 1} / ${currentFilteredData.length}`;
+            }, 150); // Timeout đợi lật mặt lại
+        }
+
+        function flipCard() {
+            cardEl.classList.toggle('flipped');
+        }
+
+        function nextCard() {
+            currentFlashcardIndex = (currentFlashcardIndex + 1) % currentFilteredData.length;
+            updateFlashcardUI();
+        }
+
+        function prevCard() {
+            currentFlashcardIndex = (currentFlashcardIndex - 1 + currentFilteredData.length) % currentFilteredData.length;
+            updateFlashcardUI();
+        }
+
+        // Run
+        initApp();
+    </script>
+</body>
+</html>
